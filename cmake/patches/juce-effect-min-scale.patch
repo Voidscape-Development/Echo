@@ -1,0 +1,12 @@
+diff --git a/modules/juce_gui_basics/components/juce_Component.cpp b/modules/juce_gui_basics/components/juce_Component.cpp
+--- a/modules/juce_gui_basics/components/juce_Component.cpp
++++ b/modules/juce_gui_basics/components/juce_Component.cpp
+@@ -216,7 +216,8 @@ public:
+                 OpaqueLayer& opaqueLayer,
+                 ComponentPaintDiagnostics& diagnostics)
+     {
+         auto scale = g.getInternalContext().getPhysicalPixelScaleFactor();
++        scale = jmax (1.0f, scale);
+         auto scaledBounds = c.getLocalBounds() * scale;
+ 
+         const auto preferredType = g.getInternalContext().getPreferredImageTypeForTemporaryImages();

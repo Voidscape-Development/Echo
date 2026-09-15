@@ -1,59 +1,111 @@
-# OBS Plugin Template
+# Echo
 
-## Introduction
+Audio device input/output filters for [OBS Studio](https://obsproject.com/) — send audio
+from OBS straight out to hardware, and bring hardware audio back into OBS, without a
+virtual cable or a second application in the path.
 
-The plugin template is meant to be used as a starting point for OBS Studio plugin development. It includes:
+Echo is a standalone extraction of the Device IO feature from the
+[atkAudio Plugin for OBS](https://github.com/atkAudio/PluginForObsRelease). See
+[Credits](#credits).
 
-* Boilerplate plugin source code
-* A CMake project file
-* GitHub Actions workflows and repository actions
+## Filters
 
-## Supported Build Environments
+Both filters are audio filters: add them to any OBS source that has audio (including a
+dummy/mixer source) via **Filters → + → Echo Device IO**.
 
-| Platform  | Tool   |
-|-----------|--------|
-| Windows   | Visual Studio 17 2022 |
-| macOS     | XCode 16.0 |
-| Windows, macOS  | CMake 3.30.5 |
-| Ubuntu 24.04 | CMake 3.28.3 |
-| Ubuntu 24.04 | `ninja-build` |
-| Ubuntu 24.04 | `pkg-config`
-| Ubuntu 24.04 | `build-essential` |
+### Echo Device IO
 
-## Quick Start
+Single-device routing. Pick one input and one output device in the settings window and the
+filter sends the source's audio to it and (optionally) mixes the device's input back into
+the OBS chain.
 
-An absolute bare-bones [Quick Start Guide](https://github.com/obsproject/obs-plugintemplate/wiki/Quick-Start-Guide) is available in the wiki.
+- **Mix Input** — mix the device's input into the filter's output instead of replacing it
+- **Follow Source Volume/Mute** — track the parent source's fader, mute and monitoring type
+- **Follow Scene** — fade out when the parent source is not in the current scene, timed to
+  the active transition
+- **Input Gain** / **Output Gain** — ±30 dB, applied to the device signal only
+- **Output Delay** — 0–10000 ms, smoothed delay line for lip-sync or latency alignment
 
-## Documentation
+### Echo Device IO 2
 
-All documentation can be found in the [Plugin Template Wiki](https://github.com/obsproject/obs-plugintemplate/wiki).
+Multi-device routing. The settings window exposes a channel routing matrix: any device
+channel on any driver can be mapped to any filter channel, in either direction, across
+several devices at once. Sample-rate conversion and drift compensation between devices and
+OBS are handled internally. The filter properties are the same as above, minus **Mix
+Input** (routing replaces it).
 
-Suggested reading to get up and running:
+## Supported audio drivers
 
-* [Getting started](https://github.com/obsproject/obs-plugintemplate/wiki/Getting-Started)
-* [Build system requirements](https://github.com/obsproject/obs-plugintemplate/wiki/Build-System-Requirements)
-* [Build system options](https://github.com/obsproject/obs-plugintemplate/wiki/CMake-Build-System-Options)
+| Platform | Drivers |
+|---|---|
+| Windows | WASAPI, DirectSound, ASIO (see below) |
+| macOS | CoreAudio |
+| Linux | ALSA, JACK |
 
-## GitHub Actions & CI
+ASIO requires the Steinberg ASIO SDK, which cannot be redistributed with this repository.
+To build with ASIO support, download the SDK and configure with
+`-DASIO_SDK_DIR=<path to asiosdk>` (or set the `ASIOSDK_DIR` environment variable). Builds
+without it fall back to WASAPI/DirectSound and log which drivers are available.
 
-Default GitHub Actions workflows are available for the following repository actions:
+## Installation
 
-* `push`: Run for commits or tags pushed to `master` or `main` branches.
-* `pr-pull`: Run when a Pull Request has been pushed or synchronized.
-* `dispatch`: Run when triggered by the workflow dispatch in GitHub's user interface.
-* `build-project`: Builds the actual project and is triggered by other workflows.
-* `check-format`: Checks CMake and plugin source code formatting and is triggered by other workflows.
+Requires **OBS Studio 31.1.1 or newer**. The plugin refuses to load on older versions.
 
-The workflows make use of GitHub repository actions (contained in `.github/actions`) and build scripts (contained in `.github/scripts`) which are not needed for local development, but might need to be adjusted if additional/different steps are required to build the plugin.
+Download the installer or portable archive for your platform from the
+[releases page](https://github.com/voidscape-development/echo/releases). For portable
+Linux installs, extract the archive and copy the `echo` directory into
+`~/.config/obs-studio/plugins/`.
 
-### Retrieving build artifacts
+Echo can be installed alongside the original atkAudio plugin: it uses its own module name,
+its own filter IDs and its own settings file. Be aware that the two plugins each open
+audio hardware independently, so they cannot share a device that is opened exclusively
+(most notably ASIO devices) — whichever plugin opens it first wins.
 
-Successful builds on GitHub Actions will produce build artifacts that can be downloaded for testing. These artifacts are commonly simple archives and will not contain package installers or installation programs.
+## Building
 
-### Building a Release
+Dependencies: CMake 3.28+, a C++23 compiler, Qt 6, the OBS sources/prebuilt dependencies
+listed in `buildspec.json`, and [JUCE](https://github.com/juce-framework/JUCE) 9.0.2
+(fetched automatically at configure time into `_deps/`).
 
-To create a release, an appropriately named tag needs to be pushed to the `main`/`master` branch using semantic versioning (e.g., `12.3.4`, `23.4.5-beta2`). A draft release will be created on the associated repository with generated installer packages or installation programs attached as release artifacts.
+```console
+git clone https://github.com/voidscape-development/echo
+cd echo
+cmake --preset ubuntu-x86_64
+cmake --build --preset ubuntu-x86_64
+```
 
-## Signing and Notarizing on macOS
+See `CMakePresets.json` for the Windows and macOS presets. On Linux, install the JUCE
+build dependencies first:
 
-Basic concepts of codesigning and notarization on macOS are explained in the correspodning [Wiki article](https://github.com/obsproject/obs-plugintemplate/wiki/Codesigning-On-macOS) which has a specific section for the [GitHub Actions setup](https://github.com/obsproject/obs-plugintemplate/wiki/Codesigning-On-macOS#setting-up-code-signing-for-github-actions).
+```console
+sudo apt install qt6-base-dev libasound2-dev libfreetype-dev libfontconfig1-dev \
+  libxrandr-dev libxinerama-dev libxcursor-dev libgtk-3-dev
+```
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `src/plugin-main.cpp` | Module entry point, Tools menu settings dialog |
+| `src/core/device_io.cpp`, `src/core/device_io2.cpp` | OBS filter definitions and property UI |
+| `src/core/atkaudio/DeviceIo*/` | The filters' audio processing and settings windows |
+| `src/core/atkaudio/ModuleInfrastructure/` | Device broker, synchronised buffers, OBS↔JUCE device bridge |
+| `src/core/atkaudio/` (rest) | JUCE runtime lifecycle, message pump, logging, settings |
+
+Everything under `src/core/` is vendored from upstream and deliberately kept close to its
+original form (including its own `.clang-format`) so upstream fixes stay easy to diff in.
+
+## Credits
+
+Echo is derived from the [atkAudio Plugin for OBS](https://github.com/atkAudio/PluginForObsRelease)
+by atkAudio, used under the terms of the AGPLv3. The Device IO filters, the audio device
+server and the OBS↔JUCE bridge are atkAudio's work; this repository packages them as a
+standalone plugin. If you find Echo useful, please consider
+[supporting atkAudio](https://www.paypal.com/donate/?hosted_button_id=ERBKC76F55HZW).
+
+Built with the [JUCE framework](https://juce.com/) and based on the
+[OBS plugin template](https://github.com/obsproject/obs-plugintemplate).
+
+## License
+
+[GNU Affero General Public License v3.0](LICENSE), inherited from upstream.

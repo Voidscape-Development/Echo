@@ -1,0 +1,4 @@
+# src/core is vendored verbatim from the atkAudio Plugin for OBS so that upstream fixes
+# stay diffable. It keeps upstream's formatting rather than this repository's style.
+DisableFormat: true
+SortIncludes: Never

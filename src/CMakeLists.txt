@@ -52,22 +52,54 @@ target_compile_definitions(
 
 set_target_properties(${PROJECT_NAME} PROPERTIES JUCE_NEEDS_WEB_BROWSER FALSE JUCE_NEEDS_CURL FALSE)
 
-# ASIO support needs the Steinberg ASIO SDK, which cannot be redistributed. Point
-# ASIO_SDK_DIR (or the ASIOSDK_DIR environment variable) at a directory containing
-# common/iasiodrv.h to build with ASIO; otherwise Windows falls back to WASAPI/DirectSound.
+# ASIO (Windows only). JUCE bundles the ASIO SDK headers it needs
+# (modules/juce_audio_devices/native/asio), which Steinberg dual-licenses under the
+# proprietary Steinberg ASIO License or GPLv3. Echo uses them under GPLv3: AGPLv3 section
+# 13 expressly permits combining an AGPLv3 work with GPLv3-licensed code. No separate SDK
+# download is needed.
+#
+# Set ECHO_ENABLE_ASIO=OFF to build without ASIO. To build against your own SDK checkout
+# instead of JUCE's bundled headers, also set ASIO_SDK_DIR to a directory containing
+# iasiodrv.h (the SDK ships it in common/).
 if(WIN32)
-  if(NOT ASIO_SDK_DIR AND DEFINED ENV{ASIOSDK_DIR})
-    set(ASIO_SDK_DIR "$ENV{ASIOSDK_DIR}" CACHE PATH "Path to the Steinberg ASIO SDK")
-  endif()
+  option(ECHO_ENABLE_ASIO "Build with ASIO audio device support" ON)
 
-  if(ASIO_SDK_DIR AND EXISTS "${ASIO_SDK_DIR}/common/iasiodrv.h")
-    message(STATUS "ASIO SDK found at ${ASIO_SDK_DIR}; enabling ASIO support")
-    target_include_directories(${PROJECT_NAME} PRIVATE "${ASIO_SDK_DIR}/common")
+  if(ECHO_ENABLE_ASIO)
     target_compile_definitions(${PROJECT_NAME} PRIVATE JUCE_ASIO=1)
+
+    if(NOT ASIO_SDK_DIR AND DEFINED ENV{ASIOSDK_DIR})
+      set(ASIO_SDK_DIR "$ENV{ASIOSDK_DIR}" CACHE PATH "Path to an external Steinberg ASIO SDK")
+    endif()
+
+    if(ASIO_SDK_DIR)
+      find_path(ECHO_ASIO_INCLUDE_DIR NAMES iasiodrv.h HINTS "${ASIO_SDK_DIR}" "${ASIO_SDK_DIR}/common" NO_DEFAULT_PATH)
+
+      if(ECHO_ASIO_INCLUDE_DIR)
+        message(STATUS "ASIO: using external SDK headers from ${ECHO_ASIO_INCLUDE_DIR}")
+        target_include_directories(${PROJECT_NAME} PRIVATE "${ECHO_ASIO_INCLUDE_DIR}")
+        target_compile_definitions(${PROJECT_NAME} PRIVATE JUCE_ASIO_USE_EXTERNAL_SDK=1)
+      else()
+        message(
+          FATAL_ERROR
+          "ASIO_SDK_DIR was set to '${ASIO_SDK_DIR}' but iasiodrv.h was not found there. "
+          "Unset ASIO_SDK_DIR to use the ASIO headers bundled with JUCE."
+        )
+      endif()
+    else()
+      message(STATUS "ASIO: using the ASIO SDK headers bundled with JUCE")
+    endif()
   else()
-    message(STATUS "ASIO SDK not found (set ASIO_SDK_DIR to enable ASIO); building without ASIO support")
+    message(STATUS "ASIO: disabled (ECHO_ENABLE_ASIO=OFF)")
     target_compile_definitions(${PROJECT_NAME} PRIVATE JUCE_ASIO=0)
   endif()
+endif()
+
+if(APPLE)
+  # JUCE's Objective-C++ sources are written for manual reference counting, but the OBS
+  # template turns ARC on globally (cmake/macos/xcode.cmake), which makes them fail to
+  # compile. Switch ARC back off for this target only.
+  set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC NO)
+  target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:OBJC,OBJCXX>:-fno-objc-arc>)
 endif()
 
 # The plugin target compiles JUCE's bundled third-party sources (FLAC, HarfBuzz, ...),

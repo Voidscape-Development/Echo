@@ -24,6 +24,13 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #include "core/atkaudio/Logging.h"
 #include "core/atkaudio/atkaudio.h"
 
+// Qt has to come before the OBS headers. obs/util/sse-intrin.h pulls in simde with
+// SIMDE_ENABLE_NATIVE_ALIASES, which redirects the _mm_* intrinsic names at simde's own
+// symbols; Qt's qsimd.h then includes <immintrin.h>, whose real declarations collide with
+// those aliases. Including Qt first means the intrinsics are already declared and simde
+// defers to them. Keep this order. (src/core/atkaudio.cpp orders its includes the same way.)
+#include <QtWidgets>
+
 #include <obs-frontend-api.h>
 #include <obs-module.h>
 #include <stdarg.h>
@@ -31,8 +38,6 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #include <stdlib.h>
 #include <string.h>
 #include <string>
-
-#include <QtWidgets>
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")

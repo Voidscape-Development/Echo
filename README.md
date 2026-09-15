@@ -38,14 +38,19 @@ Input** (routing replaces it).
 
 | Platform | Drivers |
 |---|---|
-| Windows | WASAPI, DirectSound, ASIO (see below) |
+| Windows | WASAPI, DirectSound, ASIO |
 | macOS | CoreAudio |
 | Linux | ALSA, JACK |
 
-ASIO requires the Steinberg ASIO SDK, which cannot be redistributed with this repository.
-To build with ASIO support, download the SDK and configure with
-`-DASIO_SDK_DIR=<path to asiosdk>` (or set the `ASIOSDK_DIR` environment variable). Builds
-without it fall back to WASAPI/DirectSound and log which drivers are available.
+ASIO is enabled by default on Windows and needs no separate download: JUCE bundles the
+ASIO SDK headers, which Steinberg [dual-licenses](https://forums.steinberg.net/t/asio-license-and-open-source-software/696630)
+under the proprietary Steinberg ASIO License or GPLv3 as of October 2025. Echo uses them
+under GPLv3, which AGPLv3 section 13 expressly permits combining with.
+
+Configure with `-DECHO_ENABLE_ASIO=OFF` to build without ASIO, or set `-DASIO_SDK_DIR=<path>`
+to build against your own SDK checkout instead of JUCE's bundled headers.
+
+ASIO is a trademark and software of Steinberg Media Technologies GmbH.
 
 ## Installation
 

@@ -44,6 +44,25 @@ if (( ! (${skips[(Ie)all]} + ${skips[(Ie)deps]}) )) {
     libsimde-dev \
     obs-studio
 
+  # JUCE build dependencies (see JUCE's docs/Linux Dependencies.md). juce_gui_basics needs
+  # the X11 extension headers, juce_graphics needs freetype/fontconfig, and
+  # juce_audio_devices needs ALSA and, for JACK support, the JACK headers.
+  sudo apt-get install ${apt_args} \
+    libasound2-dev${suffix} \
+    libegl-dev${suffix} \
+    libfontconfig1-dev${suffix} \
+    libfreetype-dev${suffix} \
+    libjack-jackd2-dev${suffix} \
+    libx11-dev${suffix} \
+    libxcomposite-dev${suffix} \
+    libxcursor-dev${suffix} \
+    libxext-dev${suffix} \
+    libxi-dev${suffix} \
+    libxinerama-dev${suffix} \
+    libxrandr-dev${suffix} \
+    libxrender-dev${suffix} \
+    mesa-common-dev${suffix}
+
   local -a _qt_packages=()
 
   if (( QT_VERSION == 5 )) {

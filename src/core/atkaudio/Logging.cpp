@@ -1,0 +1,36 @@
+#include "Logging.h"
+
+#include "GlobalSettings.h"
+
+#include <obs-module.h>
+
+namespace
+{
+int toObsLogLevel(atk::logging::Level level)
+{
+    switch (level)
+    {
+    case atk::logging::Level::debug:
+        return LOG_DEBUG;
+    case atk::logging::Level::info:
+        return LOG_INFO;
+    case atk::logging::Level::warning:
+        return LOG_WARNING;
+    case atk::logging::Level::error:
+        return LOG_ERROR;
+    }
+
+    return LOG_INFO;
+}
+} // namespace
+
+void atk::logging::log(Level level, const char* scope, const juce::String& message)
+{
+    // Errors must reach the OBS log even with verbose logging off, or failures like settings
+    // path/save errors become undiagnosable for users who never enabled the toggle.
+    if (level != Level::error && !atk::settings::isLoggingEnabled())
+        return;
+
+    const char* tag = (scope != nullptr && scope[0] != '\0') ? scope : "GENERAL";
+    blog(toObsLogLevel(level), "[Echo][%s] %s", tag, message.toRawUTF8());
+}

@@ -11,6 +11,7 @@ building OBS. "Before" uses the current atk::LookAndFeel verbatim; "after" uses 
 */
 
 #include "../../src/core/atkaudio/LookAndFeel.h"
+#include "../../src/ui/EchoLayout.h"
 #include "../../src/ui/EchoLookAndFeel.h"
 #include "../../src/ui/EchoWidgets.h"
 
@@ -289,17 +290,29 @@ public:
 
         g.fillAll(palette.windowBg);
 
-        for (const auto& panel : panels)
+        const auto layout = DeviceIo2Layout::compute(getLocalBounds());
+
+        const struct
         {
-            drawPanel(g, panel.bounds, palette);
-            drawPanelHeader(g, panel.bounds, panel.title, panel.hint, palette);
+            juce::Rectangle<int> bounds;
+            const char* title;
+            juce::String hint;
+        } cards[] = {
+            {layout.inputPanel, "Inputs", "4 channels"},
+            {layout.outputPanel, "Outputs", "4 channels"},
+            {layout.inputMatrixPanel, "Input routing", "device to OBS"},
+            {layout.outputMatrixPanel, "Output routing", "OBS to device"},
+        };
+
+        for (const auto& card : cards)
+        {
+            drawPanel(g, card.bounds, palette);
+            drawPanelHeader(g, card.bounds, card.title, card.hint, palette);
         }
     }
 
     void resized() override
     {
-        panels.clear();
-
         if (!modern)
         {
             // The current layout, verbatim.
@@ -333,56 +346,24 @@ public:
             return;
         }
 
-        // The redesigned layout: a header bar, a 2x2 grid of cards, a footer with a clear
-        // primary action.
-        auto bounds = getLocalBounds().reduced(metrics::windowMargin);
+        // The shipped geometry, straight from the shared layout the component uses.
+        const auto layout = DeviceIo2Layout::compute(getLocalBounds());
 
-        auto footer = bounds.removeFromBottom(metrics::footerHeight);
-        deviceButton.setBounds(footer.removeFromLeft(110).withSizeKeepingCentre(110, metrics::controlHeight));
-        applyButton.setBounds(footer.removeFromRight(96).withSizeKeepingCentre(96, metrics::controlHeight));
-        footer.removeFromRight(8);
-        discardButton.setBounds(footer.removeFromRight(88).withSizeKeepingCentre(88, metrics::controlHeight));
-        footer.removeFromRight(4);
-        resetButton.setBounds(footer.removeFromRight(80).withSizeKeepingCentre(80, metrics::controlHeight));
-        bounds.removeFromBottom(metrics::gutter);
+        deviceButton.setBounds(layout.deviceButton);
+        resetButton.setBounds(layout.resetButton);
+        discardButton.setBounds(layout.discardButton);
+        applyButton.setBounds(layout.applyButton);
 
-        auto deviceRow = bounds.removeFromTop((int)(bounds.getHeight() * 0.52f));
-        auto inputPanel = deviceRow.removeFromLeft((deviceRow.getWidth() - metrics::gutter) / 2);
-        deviceRow.removeFromLeft(metrics::gutter);
-        auto outputPanel = deviceRow;
-
-        bounds.removeFromTop(metrics::gutter);
-        auto inputMatrixPanel = bounds.removeFromLeft((bounds.getWidth() - metrics::gutter) / 2);
-        bounds.removeFromLeft(metrics::gutter);
-        auto outputMatrixPanel = bounds;
-
-        panels.push_back({inputPanel, "Inputs", "2 subscribed"});
-        panels.push_back({outputPanel, "Outputs", "1 subscribed"});
-        panels.push_back({inputMatrixPanel, "Input routing", "device to OBS"});
-        panels.push_back({outputMatrixPanel, "Output routing", "OBS to device"});
-
-        inputTree.setBounds(contentOf(inputPanel));
-        outputTree.setBounds(contentOf(outputPanel));
-        inputMatrix->setBounds(contentOf(inputMatrixPanel).reduced(1, 0));
-        outputMatrix->setBounds(contentOf(outputMatrixPanel).reduced(1, 0));
+        inputTree.setBounds(DeviceIo2Layout::panelContent(layout.inputPanel));
+        outputTree.setBounds(DeviceIo2Layout::panelContent(layout.outputPanel));
+        inputMatrix->setBounds(DeviceIo2Layout::panelContent(layout.inputMatrixPanel));
+        outputMatrix->setBounds(DeviceIo2Layout::panelContent(layout.outputMatrixPanel));
     }
 
     /** Drawn by the harness rather than a real peer, since these windows are offscreen. */
     juce::String windowTitle{"Echo Device IO 2 - Audio Settings"};
 
 private:
-    struct PanelSpec
-    {
-        juce::Rectangle<int> bounds;
-        juce::String title;
-        juce::String hint;
-    };
-
-    static juce::Rectangle<int> contentOf(juce::Rectangle<int> panel)
-    {
-        return panel.withTrimmedTop(metrics::panelHeaderHeight).reduced(1, 1).withTrimmedBottom(1);
-    }
-
     void buildTree(juce::TreeView& tree, std::unique_ptr<MockTreeItem>& root, bool isInput)
     {
         root = std::make_unique<MockTreeItem>("Devices", MockTreeItem::Kind::DeviceType, modern);
@@ -429,8 +410,6 @@ private:
     juce::TextButton discardButton{"Discard"};
     juce::TextButton resetButton{"Reset"};
     juce::TextButton deviceButton{"Device..."};
-
-    std::vector<PanelSpec> panels;
 };
 
 //==============================================================================

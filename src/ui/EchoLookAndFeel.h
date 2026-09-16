@@ -92,4 +92,21 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EchoLookAndFeel)
 };
 
+/**
+    The palette a component should paint with. Falls back to deriving one from whatever
+    look and feel is in force, so custom paint code still works if Echo's is not installed.
+*/
+inline Palette paletteFor(juce::Component& component)
+{
+    auto& lf = component.getLookAndFeel();
+
+    if (auto* echoLookAndFeel = dynamic_cast<EchoLookAndFeel*>(&lf))
+        return echoLookAndFeel->getPalette();
+
+    return Palette::fromObsColours(
+        lf.findColour(juce::ResizableWindow::backgroundColourId),
+        lf.findColour(juce::Label::textColourId)
+    );
+}
+
 } // namespace echo::ui

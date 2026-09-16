@@ -24,13 +24,13 @@ public:
     void setSubscriptionState(const AudioClientState& state, bool expandToSubscriptions = true);
     void applySubscriptions();
 
-    void setClientChannelInfo(const juce::StringArray& channelNames, const juce::String& firstColumnName = "Routing");
+    void setClientChannelInfo(const juce::StringArray& channelNames, const juce::String& firstColumnName = "Channel");
     void setClientChannelInfo(
         const juce::StringArray& inputChannelNames,
         const juce::StringArray& outputChannelNames,
-        const juce::String& firstColumnName = "Routing"
+        const juce::String& firstColumnName = "Channel"
     );
-    void setClientChannelCount(int numChannels, const juce::String& firstColumnName = "Routing");
+    void setClientChannelCount(int numChannels, const juce::String& firstColumnName = "Channel");
 
     void setInputFixedTopRows(const juce::StringArray& names, bool defaultEnabled = true);
     void setOutputFixedTopRows(const juce::StringArray& names, bool defaultEnabled = true);
@@ -204,7 +204,7 @@ private:
         int numFixedTopRows = 0;
         juce::StringArray clientChannelNames;
         juce::StringArray fixedRowNames;
-        juce::String firstColumnName = "Routing";
+        juce::String firstColumnName = "Channel";
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChannelMappingMatrix)
     };

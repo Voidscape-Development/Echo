@@ -2,6 +2,11 @@
 #include <atkaudio/atkaudio.h>
 #include <atkaudio/Logging.h>
 
+// Echo: shared theme, drawing primitives and window geometry.
+#include <ui/EchoLayout.h>
+#include <ui/EchoLookAndFeel.h>
+#include <ui/EchoWidgets.h>
+
 namespace atk
 {
 
@@ -27,27 +32,31 @@ bool AudioServerSettingsComponent::DeviceChannelTreeItem::mightContainSubItems()
 
 void AudioServerSettingsComponent::DeviceChannelTreeItem::paintItem(juce::Graphics& g, int width, int height)
 {
-    // Use default TreeView colors
-    auto& lf = getOwnerView()->getLookAndFeel();
+    // Echo: channels get a real checkbox instead of "[X]" / "[ ]" drawn in a monospace font,
+    // and unsubscribed ones dim so the active routing is what stands out.
+    const auto palette = echo::ui::paletteFor(*getOwnerView());
+    auto bounds = juce::Rectangle<int>(0, 0, width, height);
 
     if (isSelected())
-        g.fillAll(lf.findColour(juce::TreeView::selectedItemBackgroundColourId));
-
-    // Use default text color from Component
-    g.setColour(lf.findColour(juce::Label::textColourId));
-    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), height * 0.7f, juce::Font::plain));
-
-    juce::String displayText = itemName;
-    if (itemType == ItemType::Channel)
     {
-        // Always show placeholder for consistent spacing
-        if (subscribed)
-            displayText = "[X] " + displayText;
-        else
-            displayText = "[ ] " + displayText;
+        g.setColour(palette.accentSoft);
+        g.fillRoundedRectangle(bounds.toFloat().reduced(1.0f), 4.0f);
     }
 
-    g.drawText(displayText, 4, 0, width - 4, height, juce::Justification::centredLeft, true);
+    if (itemType == ItemType::Channel)
+    {
+        echo::ui::drawCheckbox(g, bounds.removeFromLeft(24).toFloat(), subscribed, palette);
+
+        g.setColour(subscribed ? palette.text : palette.textDim);
+        g.setFont(echo::ui::bodyFont(13.0f));
+        g.drawText(itemName, bounds.withTrimmedLeft(2), juce::Justification::centredLeft, true);
+    }
+    else
+    {
+        g.setColour(palette.text);
+        g.setFont(echo::ui::bodyFont(13.0f, itemType == ItemType::DeviceType));
+        g.drawText(itemName, bounds.withTrimmedLeft(4), juce::Justification::centredLeft, true);
+    }
 }
 
 void AudioServerSettingsComponent::DeviceChannelTreeItem::itemClicked(const juce::MouseEvent& e)
@@ -118,13 +127,18 @@ AudioServerSettingsComponent::ChannelMappingMatrix::ChannelMappingMatrix()
     table.setMultipleSelectionEnabled(false);
     table.setClickingTogglesRowSelection(false);
 
+    // Echo: roomier rows, and no outline since the card already provides the edge.
+    table.setRowHeight(26);
+    table.setHeaderHeight(28);
+    table.setColour(juce::ListBox::outlineColourId, juce::Colours::transparentBlack);
+
     // Configure the header
     auto& header = table.getHeader();
     header.setVisible(true);
 
     // Add first column for row labels (will be set later via setFirstColumnName)
     // Width adjusted so first column + 4 channel columns fit in viewport (200 + 4*40 = 360px)
-    header.addColumn("Routing", 1, 200, 150, 300, juce::TableHeaderComponent::notSortable);
+    header.addColumn("Channel", 1, 200, 150, 300, juce::TableHeaderComponent::notSortable);
 }
 
 int AudioServerSettingsComponent::ChannelMappingMatrix::getNumRows()
@@ -140,7 +154,14 @@ void AudioServerSettingsComponent::ChannelMappingMatrix::paintRowBackground(
     bool rowIsSelected
 )
 {
-    juce::ignoreUnused(g, rowNumber, width, height, rowIsSelected);
+    juce::ignoreUnused(rowIsSelected);
+
+    // Echo: alternating tint, so a wide matrix stays readable across the row.
+    if (rowNumber % 2 == 1)
+    {
+        g.setColour(echo::ui::paletteFor(*this).rowAlt.withAlpha(0.6f));
+        g.fillRect(0, 0, width, height);
+    }
 }
 
 void AudioServerSettingsComponent::ChannelMappingMatrix::paintCell(
@@ -160,8 +181,9 @@ void AudioServerSettingsComponent::ChannelMappingMatrix::paintCell(
 
     if (columnId == 1) // Device channel label column
     {
-        g.setColour(juce::Colours::white);
-        g.setFont(11.0f);
+        // Echo: palette text rather than hardcoded white, which broke on light OBS themes.
+        g.setColour(echo::ui::paletteFor(*this).text);
+        g.setFont(echo::ui::bodyFont(12.5f));
 
         juce::String label;
         if (rowNumber < numFixedTopRows)
@@ -185,17 +207,14 @@ void AudioServerSettingsComponent::ChannelMappingMatrix::paintCell(
         {
             bool mapped = mappingGrid[rowNumber][clientChannel];
 
-            // Draw "X" for mapped cells on normal background
-            if (mapped)
-            {
-                g.setColour(juce::Colours::white);
-                g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 16.0f, juce::Font::bold));
-                g.drawText("X", 0, 0, width, height, juce::Justification::centred);
-            }
-
-            // Draw cell border
-            g.setColour(juce::Colours::black.withAlpha(0.3f));
-            g.drawRect(0, 0, width, height, 1);
+            // Echo: an accent-filled checkbox on a hairline grid, in place of a bold
+            // monospace "X" boxed in by hardcoded black borders.
+            echo::ui::drawMatrixCell(
+                g,
+                juce::Rectangle<float>(0.0f, 0.0f, (float)width, (float)height),
+                mapped,
+                echo::ui::paletteFor(*this)
+            );
         }
     }
 }
@@ -590,32 +609,25 @@ AudioServerSettingsComponent::AudioServerSettingsComponent(AudioClient* audioCli
     : client(audioClient)
     , server(AudioServer::getInstance())
 {
-    // Input tree
-    inputTreeLabel.setText("Input", juce::dontSendNotification);
-    inputTreeLabel.setFont(juce::FontOptions(16.0f, juce::Font::bold));
-    addAndMakeVisible(inputTreeLabel);
-
+    // Input tree. Echo: the card header draws the "Inputs" title, so inputTreeLabel is
+    // no longer added as a child.
     inputTreeView = std::make_unique<juce::TreeView>();
     inputRootItem = std::make_unique<DeviceChannelTreeItem>("Inputs", DeviceChannelTreeItem::ItemType::DeviceType);
     inputTreeView->setRootItem(inputRootItem.get());
     inputTreeView->setRootItemVisible(false);
     inputTreeView->setDefaultOpenness(false); // Control openness explicitly per item
-    inputTreeView->setColour(juce::TreeView::backgroundColourId, findColour(juce::ResizableWindow::backgroundColourId));
-    inputTreeView->setColour(juce::TreeView::linesColourId, juce::Colours::grey);
+    inputTreeView->setColour(juce::TreeView::backgroundColourId, juce::Colours::transparentBlack);
+    inputTreeView->setIndentSize(18);
     addAndMakeVisible(inputTreeView.get());
 
-    // Output tree
-    outputTreeLabel.setText("Output", juce::dontSendNotification);
-    outputTreeLabel.setFont(juce::FontOptions(16.0f, juce::Font::bold));
-    addAndMakeVisible(outputTreeLabel);
-
+    // Output tree. Echo: title drawn by the card header, as above.
     outputTreeView = std::make_unique<juce::TreeView>();
     outputRootItem = std::make_unique<DeviceChannelTreeItem>("Outputs", DeviceChannelTreeItem::ItemType::DeviceType);
     outputTreeView->setRootItem(outputRootItem.get());
     outputTreeView->setRootItemVisible(false);
     outputTreeView->setDefaultOpenness(false); // Control openness explicitly per item
-    outputTreeView->setColour(juce::TreeView::backgroundColourId, findColour(juce::ResizableWindow::backgroundColourId));
-    outputTreeView->setColour(juce::TreeView::linesColourId, juce::Colours::grey);
+    outputTreeView->setColour(juce::TreeView::backgroundColourId, juce::Colours::transparentBlack);
+    outputTreeView->setIndentSize(18);
     addAndMakeVisible(outputTreeView.get());
 
     // Use provided channel count
@@ -628,21 +640,24 @@ AudioServerSettingsComponent::AudioServerSettingsComponent(AudioClient* audioCli
     );
     inputMappingMatrix = std::make_unique<ChannelMappingMatrix>();
     addAndMakeVisible(inputMappingMatrix.get());
-    inputMappingMatrix->setFirstColumnName("Routing");
+    inputMappingMatrix->setFirstColumnName("Channel");
     inputMappingMatrix->setNumClientChannels(clientChannels);
 
     outputMappingMatrix = std::make_unique<ChannelMappingMatrix>();
     addAndMakeVisible(outputMappingMatrix.get());
-    outputMappingMatrix->setFirstColumnName("Routing");
+    outputMappingMatrix->setFirstColumnName("Channel");
     outputMappingMatrix->setNumClientChannels(clientChannels);
 
-    // Buttons
+    // Buttons. Echo: Apply is the primary action, the two step-back actions are quiet.
+    applyButton.getProperties().set(echo::ui::EchoLookAndFeel::primaryButtonProperty, true);
     applyButton.addListener(this);
     addAndMakeVisible(applyButton);
 
+    restoreButton.getProperties().set(echo::ui::EchoLookAndFeel::quietButtonProperty, true);
     restoreButton.addListener(this);
     addAndMakeVisible(restoreButton);
 
+    cancelButton.getProperties().set(echo::ui::EchoLookAndFeel::quietButtonProperty, true);
     cancelButton.addListener(this);
     addAndMakeVisible(cancelButton);
 
@@ -685,51 +700,56 @@ AudioServerSettingsComponent::~AudioServerSettingsComponent()
 
 void AudioServerSettingsComponent::paint(juce::Graphics& g)
 {
-    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
+    // Echo: the trees and matrices sit in titled cards rather than floating on the window.
+    const auto palette = echo::ui::paletteFor(*this);
+    const auto layout = echo::ui::DeviceIo2Layout::compute(getLocalBounds());
+
+    g.fillAll(palette.windowBg);
+
+    const auto subscribedHint = [](const ChannelMappingMatrix* matrix) -> juce::String
+    {
+        if (matrix == nullptr)
+            return {};
+
+        const auto count = (int)matrix->getSubscribedChannels().size();
+        return count == 1 ? "1 channel" : juce::String(count) + " channels";
+    };
+
+    const struct
+    {
+        juce::Rectangle<int> bounds;
+        const char* title;
+        juce::String hint;
+    } panels[] = {
+        {layout.inputPanel, "Inputs", subscribedHint(inputMappingMatrix.get())},
+        {layout.outputPanel, "Outputs", subscribedHint(outputMappingMatrix.get())},
+        {layout.inputMatrixPanel, "Input routing", "device to OBS"},
+        {layout.outputMatrixPanel, "Output routing", "OBS to device"},
+    };
+
+    for (const auto& panel : panels)
+    {
+        echo::ui::drawPanel(g, panel.bounds, palette);
+        echo::ui::drawPanelHeader(g, panel.bounds, panel.title, panel.hint, palette);
+    }
 }
 
 void AudioServerSettingsComponent::resized()
 {
-    auto bounds = getLocalBounds().reduced(10);
+    // Echo: geometry lives in echo::ui::DeviceIo2Layout so the window and the ui-preview
+    // tool cannot drift apart. Same children, same behaviour - only their bounds change.
+    const auto layout = echo::ui::DeviceIo2Layout::compute(getLocalBounds());
 
-    // Bottom buttons (right to left: Reset, Restore, Apply, Device...)
-    auto buttonArea = bounds.removeFromBottom(30);
-    buttonArea.removeFromTop(5); // Gap
-    applyButton.setBounds(buttonArea.removeFromRight(80));
-    buttonArea.removeFromRight(5); // Gap
-    restoreButton.setBounds(buttonArea.removeFromRight(80));
-    buttonArea.removeFromRight(5); // Gap
-    cancelButton.setBounds(buttonArea.removeFromRight(80));
-    buttonArea.removeFromRight(5); // Gap
-    deviceButton.setBounds(buttonArea.removeFromRight(80));
+    deviceButton.setBounds(layout.deviceButton);
+    cancelButton.setBounds(layout.resetButton);
+    restoreButton.setBounds(layout.discardButton);
+    applyButton.setBounds(layout.applyButton);
 
-    bounds.removeFromBottom(10); // Gap
+    inputTreeView->setBounds(echo::ui::DeviceIo2Layout::panelContent(layout.inputPanel));
+    outputTreeView->setBounds(echo::ui::DeviceIo2Layout::panelContent(layout.outputPanel));
 
-    // Top section with trees (60% of height)
-    auto topSection = bounds.removeFromTop(static_cast<int>(bounds.getHeight() * 0.6f));
-
-    // Split top section vertically for input/output trees
-    auto inputSection = topSection.removeFromLeft(topSection.getWidth() / 2).reduced(5);
-    auto outputSection = topSection.reduced(5);
-
-    inputTreeLabel.setBounds(inputSection.removeFromTop(30));
-    inputTreeView->setBounds(inputSection);
-
-    outputTreeLabel.setBounds(outputSection.removeFromTop(30));
-    outputTreeView->setBounds(outputSection);
-
-    // Bottom section with matrices (40% of height), split horizontally
-    bounds.removeFromTop(10); // Gap
-
-    auto matrixSection = bounds;
-    auto leftMatrixSection = matrixSection.removeFromLeft(matrixSection.getWidth() / 2).reduced(5);
-    auto rightMatrixSection = matrixSection.reduced(5);
-
-    // Input matrix on the left
-    inputMappingMatrix->setBounds(leftMatrixSection);
-
-    // Output matrix on the right
-    outputMappingMatrix->setBounds(rightMatrixSection);
+    inputMappingMatrix->setBounds(echo::ui::DeviceIo2Layout::panelContent(layout.inputMatrixPanel));
+    outputMappingMatrix->setBounds(echo::ui::DeviceIo2Layout::panelContent(layout.outputMatrixPanel));
 }
 
 void AudioServerSettingsComponent::updateDeviceTrees()

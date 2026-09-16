@@ -42,7 +42,7 @@ public:
 
         audioComponent->setInputFixedTopRows(channelNames, true);
         audioComponent->setOutputFixedTopRows(channelNames, true);
-        audioComponent->setClientChannelInfo(channelNames, channelNames, "Echo Device IO 2");
+        audioComponent->setClientChannelInfo(channelNames, channelNames, "Channel");
 
         setContentOwned(audioComponent, true);
         centreWithSize(900, 700);
@@ -169,7 +169,7 @@ void atk::DeviceIo2::updateChannelInfoOnMessageThread(int numChannels)
             for (int i = 0; i < numChannels; ++i)
                 channelNames.add(juce::String(i + 1));
 
-            audioComponent->setClientChannelInfo(channelNames, channelNames, "Echo Device IO 2");
+            audioComponent->setClientChannelInfo(channelNames, channelNames, "Channel");
             audioComponent->setObsChannelMappings(getInputChannelMapping(), getOutputChannelMapping());
         }
     }
@@ -571,7 +571,7 @@ juce::Component* atk::DeviceIo2::getWindowComponent()
 
             audioComponent->setInputFixedTopRows(channelNames, true);
             audioComponent->setOutputFixedTopRows(channelNames, true);
-            audioComponent->setClientChannelInfo(channelNames, channelNames, "Echo Device IO 2");
+            audioComponent->setClientChannelInfo(channelNames, channelNames, "Channel");
 
             audioComponent->onObsMappingChanged = [this](
                                                       const std::vector<std::vector<bool>>& inputMapping,
@@ -606,7 +606,7 @@ juce::Component* atk::DeviceIo2::createEmbeddableSettingsComponent()
 
     audioComponent->setInputFixedTopRows(channelNames, true);
     audioComponent->setOutputFixedTopRows(channelNames, true);
-    audioComponent->setClientChannelInfo(channelNames, channelNames, "Echo Device IO 2");
+    audioComponent->setClientChannelInfo(channelNames, channelNames, "Channel");
 
     audioComponent->onObsMappingChanged =
         [this](const std::vector<std::vector<bool>>& inputMapping, const std::vector<std::vector<bool>>& outputMapping)

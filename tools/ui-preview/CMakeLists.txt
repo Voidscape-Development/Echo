@@ -33,6 +33,8 @@ endif()
 
 juce_add_console_app(ui-preview)
 
+target_include_directories(ui-preview PRIVATE ../../src)
+
 target_sources(ui-preview PRIVATE preview.cpp ../../src/ui/EchoLookAndFeel.cpp)
 
 target_compile_definitions(

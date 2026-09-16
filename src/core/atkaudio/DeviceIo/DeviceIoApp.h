@@ -354,7 +354,8 @@ private:
         }
     }
 
-    static constexpr int margin = 10;
+    // Echo: a slightly wider gutter, matching echo::ui::metrics::windowMargin.
+    static constexpr int margin = 16;
 
     int maxInputChannels = 0;
     int maxOutputChannels = 0;

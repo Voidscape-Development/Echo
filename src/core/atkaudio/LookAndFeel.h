@@ -1,11 +1,16 @@
 #pragma once
+// Echo: rebased onto echo::ui::EchoLookAndFeel so every window this plugin opens picks up
+// Echo's styling. The OBS colour plumbing below is upstream's, unchanged; setColors() just
+// forwards the same two colours on to the Echo palette.
+#include <ui/EchoLookAndFeel.h>
+
 #include <juce_audio_utils/juce_audio_utils.h>
 
 using namespace juce;
 
 namespace atk
 {
-class LookAndFeel : public juce::LookAndFeel_V4
+class LookAndFeel : public echo::ui::EchoLookAndFeel
 {
 public:
     LookAndFeel()
@@ -41,6 +46,11 @@ public:
         scheme.setUIColour(juce::LookAndFeel_V4::ColourScheme::menuText, text);
         scheme.setUIColour(juce::LookAndFeel_V4::ColourScheme::highlightedFill, highlightColour);
         this->setColourScheme(scheme);
+
+        // Echo: rebuild the Echo palette from the same OBS colours. This has to run after
+        // setColourScheme(), which assigns colour IDs of its own from the V4 scheme and
+        // would otherwise overwrite Echo's.
+        setEchoPalette(background, text);
 
         // Notify all existing components to refresh with new colors
         auto& desktop = juce::Desktop::getInstance();

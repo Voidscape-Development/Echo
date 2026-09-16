@@ -83,9 +83,14 @@ See `CMakePresets.json` for the Windows and macOS presets. On Linux, install the
 build dependencies first:
 
 ```console
-sudo apt install qt6-base-dev libasound2-dev libfreetype-dev libfontconfig1-dev \
-  libxrandr-dev libxinerama-dev libxcursor-dev libgtk-3-dev
+sudo apt install qt6-base-dev libobs-dev libasound2-dev libjack-jackd2-dev \
+  libfreetype-dev libfontconfig1-dev libegl-dev mesa-common-dev \
+  libx11-dev libxext-dev libxi-dev libxrandr-dev libxinerama-dev \
+  libxcursor-dev libxcomposite-dev libxrender-dev
 ```
+
+JACK support is enabled when `jack/jack.h` is present at configure time; libjack itself is
+loaded at runtime, so it is not a hard dependency of the installed plugin.
 
 ## Repository layout
 

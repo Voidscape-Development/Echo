@@ -94,11 +94,34 @@ if(WIN32)
   endif()
 endif()
 
+# JACK support on Linux is opt-in in JUCE and needs the JACK headers at build time (the
+# library itself is dlopened at runtime, so it stays a soft dependency for users).
+if(UNIX AND NOT APPLE)
+  find_path(ECHO_JACK_INCLUDE_DIR NAMES jack/jack.h)
+
+  if(ECHO_JACK_INCLUDE_DIR)
+    message(STATUS "JACK: headers found, enabling JACK device support")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE JUCE_JACK=1)
+  else()
+    message(STATUS "JACK: jack/jack.h not found, building without JACK device support")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE JUCE_JACK=0)
+  endif()
+endif()
+
 if(APPLE)
-  # JUCE's Objective-C++ sources are written for manual reference counting, but the OBS
-  # template turns ARC on globally (cmake/macos/xcode.cmake), which makes them fail to
-  # compile. Switch ARC back off for this target only.
-  set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC NO)
+  # The OBS template drives the macOS build through the Xcode generator, so these have to
+  # be Xcode build settings on the target: CMake's COMPILE_WARNING_AS_ERROR property and
+  # $<COMPILE_LANGUAGE:OBJCXX> options do not reach Xcode's own Objective-C rules (this
+  # project enables only C and CXX as languages).
+  #
+  # ARC: JUCE's .mm sources use manual reference counting, but cmake/macos/xcode.cmake
+  # turns ARC on globally.
+  # Warnings as errors: same rationale as COMPILE_WARNING_AS_ERROR below - JUCE's sources
+  # trip warnings such as -Warc-repeated-use-of-weak that we do not want failing the build.
+  set_target_properties(
+    ${PROJECT_NAME}
+    PROPERTIES XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC NO XCODE_ATTRIBUTE_GCC_TREAT_WARNINGS_AS_ERRORS NO
+  )
   target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:OBJC,OBJCXX>:-fno-objc-arc>)
 endif()
 

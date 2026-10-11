@@ -521,6 +521,13 @@ AudioClientState AudioClient::getSubscriptions() const
     return snapshot ? snapshot->state : AudioClientState();
 }
 
+void AudioClient::getSubscriptionCounts(int& numInputs, int& numOutputs) const
+{
+    auto snapshot = bufferSnapshot.load(std::memory_order_acquire);
+    numInputs = snapshot ? static_cast<int>(snapshot->state.inputSubscriptions.size()) : 0;
+    numOutputs = snapshot ? static_cast<int>(snapshot->state.outputSubscriptions.size()) : 0;
+}
+
 int AudioClient::getNumInputSubscriptions() const
 {
     auto snapshot = bufferSnapshot.load(std::memory_order_acquire);

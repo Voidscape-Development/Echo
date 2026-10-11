@@ -156,6 +156,8 @@ public:
     void clearBuffers();
     void setSubscriptions(const AudioClientState& state);
     AudioClientState getSubscriptions() const;
+    // Sizes of getSubscriptions()' lists from one snapshot, without copying them; safe on the audio thread.
+    void getSubscriptionCounts(int& numInputs, int& numOutputs) const;
 
     void* getClientId() const
     {

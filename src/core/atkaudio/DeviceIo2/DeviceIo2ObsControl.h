@@ -2,6 +2,8 @@
 
 #include <string>
 
+struct obs_source;
+
 namespace atk::deviceIo2ObsControl
 {
 struct SourceLevelState
@@ -11,6 +13,6 @@ struct SourceLevelState
 };
 
 bool resolveDesiredBypass(const std::string& parentSourceUuid, bool& desiredBypass);
-bool readSourceLevelState(const std::string& parentSourceUuid, SourceLevelState& state);
+bool readSourceLevelState(obs_source* source, SourceLevelState& state);
 double getCurrentTransitionFadeSeconds();
 } // namespace atk::deviceIo2ObsControl

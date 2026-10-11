@@ -92,12 +92,11 @@ void atk::DeviceIo::process(float** buffer, int numChannels, int numSamples, dou
         inputGainSmooth.skip(numSamples);
     }
 
-    juce::AudioBuffer<float> hardwareOutputBuffer;
+    // Member buffer: avoidReallocating keeps its storage, so steady-state blocks don't allocate.
+    hardwareOutputBuffer.setSize(numChannels, numSamples, false, false, true);
 
     if (hasHardwareInput)
     {
-        hardwareOutputBuffer.setSize(numChannels, numSamples, false, false, true);
-
         if (mixInput)
         {
             for (int ch = 0; ch < numChannels; ++ch)
@@ -119,7 +118,6 @@ void atk::DeviceIo::process(float** buffer, int numChannels, int numSamples, dou
     }
     else
     {
-        hardwareOutputBuffer.setSize(numChannels, numSamples, false, false, true);
         for (int ch = 0; ch < numChannels; ++ch)
             std::copy(buffer[ch], buffer[ch] + numSamples, hardwareOutputBuffer.getWritePointer(ch));
 

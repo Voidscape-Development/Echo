@@ -164,36 +164,6 @@ bool tryTransitionDesiredBypass(const char* parentUuid, bool& desiredBypass)
     return resolved;
 }
 
-struct SourceLevelQueryContext
-{
-    const char* targetUuid = nullptr;
-    bool found = false;
-    float sourceVolume = 1.0f;
-    bool sourceMuted = false;
-};
-
-bool enumSourceLevelByUuid(void* param, obs_source_t* src)
-{
-    auto* context = (SourceLevelQueryContext*)param;
-    if (context == nullptr || src == nullptr)
-        return true;
-
-    const char* sourceUuid = obs_source_get_uuid(src);
-    if (sourceUuid == nullptr || context->targetUuid == nullptr)
-        return true;
-
-    if (strcmp(sourceUuid, context->targetUuid) != 0)
-        return true;
-
-    bool obsMuted = obs_source_muted(src);
-    int monitoringType = (int)obs_source_get_monitoring_type(src);
-    bool effectiveMuted = obsMuted || (monitoringType == OBS_MONITORING_TYPE_MONITOR_ONLY);
-
-    context->sourceVolume = obs_source_get_volume(src);
-    context->sourceMuted = effectiveMuted;
-    context->found = true;
-    return false;
-}
 } // namespace
 
 bool resolveDesiredBypass(const std::string& parentSourceUuid, bool& desiredBypass)
@@ -203,42 +173,42 @@ bool resolveDesiredBypass(const std::string& parentSourceUuid, bool& desiredBypa
 
     const char* uuid = parentSourceUuid.c_str();
 
-    if (!sourceUuidExistsInAnyScene(uuid))
+    bool candidate = true;
+    bool resolved = tryTransitionDesiredBypass(uuid, candidate);
+    if (!resolved)
+    {
+        bool inCurrentScene = false;
+        resolved = tryCurrentSceneContainsSourceUuid(uuid, inCurrentScene);
+        if (resolved)
+            candidate = !inCurrentScene;
+    }
+
+    // Not bypassing means the source was found in a live scene, so it exists; the walk over every scene
+    // (run each video frame) is only needed to tell "in another scene" from "in no scene".
+    if ((resolved && !candidate) || !sourceUuidExistsInAnyScene(uuid))
     {
         desiredBypass = false;
         return true;
     }
 
-    if (tryTransitionDesiredBypass(uuid, desiredBypass))
-        return true;
-
-    bool inCurrentScene = false;
-    if (tryCurrentSceneContainsSourceUuid(uuid, inCurrentScene))
-    {
-        desiredBypass = !inCurrentScene;
-        return true;
-    }
-
-    return false;
+    if (resolved)
+        desiredBypass = candidate;
+    return resolved;
 }
 
-bool readSourceLevelState(const std::string& parentSourceUuid, SourceLevelState& state)
+bool readSourceLevelState(obs_source_t* source, SourceLevelState& state)
 {
     state.sourceVolume = 1.0f;
     state.sourceMuted = false;
 
-    if (parentSourceUuid.empty())
+    if (source == nullptr)
         return false;
 
-    SourceLevelQueryContext context;
-    context.targetUuid = parentSourceUuid.c_str();
-    obs_enum_sources(enumSourceLevelByUuid, &context);
+    bool obsMuted = obs_source_muted(source);
+    int monitoringType = (int)obs_source_get_monitoring_type(source);
 
-    if (!context.found)
-        return false;
-
-    state.sourceVolume = context.sourceVolume;
-    state.sourceMuted = context.sourceMuted;
+    state.sourceVolume = obs_source_get_volume(source);
+    state.sourceMuted = obsMuted || (monitoringType == OBS_MONITORING_TYPE_MONITOR_ONLY);
     return true;
 }
 

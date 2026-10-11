@@ -52,6 +52,7 @@ private:
     std::unique_ptr<AudioAppMainWindow> mainWindow;
 
     juce::AudioBuffer<float> tempBuffer;
+    juce::AudioBuffer<float> hardwareOutputBuffer;
     std::vector<float*> fadeDeviceOutputPointers;
     std::vector<juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::Linear>> outputDelayLines;
     std::vector<juce::LinearSmoothedValue<float>> outputDelaySmooth;

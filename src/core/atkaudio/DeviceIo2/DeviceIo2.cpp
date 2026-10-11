@@ -293,9 +293,10 @@ void atk::DeviceIo2::process(float** buffer, int numChannels, int numSamples, do
 
     internalBuffer.clear();
 
-    auto clientState = audioClient.getSubscriptions();
-    int numInputSubs = (int)clientState.inputSubscriptions.size();
-    int numOutputSubs = (int)clientState.outputSubscriptions.size();
+    // Counts only: copying the subscription list would allocate on the audio thread every block.
+    int numInputSubs = 0;
+    int numOutputSubs = 0;
+    audioClient.getSubscriptionCounts(numInputSubs, numOutputSubs);
 
     if (deviceInputBuffer.getNumChannels() < numInputSubs || deviceInputBuffer.getNumSamples() < numSamples)
     {

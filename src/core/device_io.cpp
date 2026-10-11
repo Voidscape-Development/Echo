@@ -391,23 +391,27 @@ static bool try_resolve_desired_bypass(obs_source_t* parent, bool& desiredBypass
     if (parentUuid == nullptr || parentUuid[0] == '\0')
         return false;
 
-    if (!source_uuid_exists_in_any_scene(parentUuid))
+    bool candidate = true;
+    bool resolved = try_transition_desired_bypass(parent, candidate);
+    if (!resolved)
+    {
+        bool inCurrentScene = false;
+        resolved = try_current_scene_contains_source_uuid(parentUuid, inCurrentScene);
+        if (resolved)
+            candidate = !inCurrentScene;
+    }
+
+    // Not bypassing means the source was found in a live scene, so it exists; the walk over every scene
+    // (run each video frame) is only needed to tell "in another scene" from "in no scene".
+    if ((resolved && !candidate) || !source_uuid_exists_in_any_scene(parentUuid))
     {
         desiredBypass = false;
         return true;
     }
 
-    if (try_transition_desired_bypass(parent, desiredBypass))
-        return true;
-
-    bool inCurrentScene = false;
-    if (try_current_scene_contains_source_uuid(parentUuid, inCurrentScene))
-    {
-        desiredBypass = !inCurrentScene;
-        return true;
-    }
-
-    return false;
+    if (resolved)
+        desiredBypass = candidate;
+    return resolved;
 }
 
 static void tick(void* data, float seconds)

@@ -261,11 +261,8 @@ static void tick(void* data, float seconds)
 
     if (adio->followSourceVolume.load(std::memory_order_acquire) && parent)
     {
-        auto* parentUuid = obs_source_get_uuid(parent);
-        std::string parentUuidString = parentUuid ? parentUuid : "";
-
         atk::deviceIo2ObsControl::SourceLevelState sourceLevelState;
-        if (atk::deviceIo2ObsControl::readSourceLevelState(parentUuidString, sourceLevelState))
+        if (atk::deviceIo2ObsControl::readSourceLevelState(parent, sourceLevelState))
         {
             adio->sourceMuted.store(sourceLevelState.sourceMuted, std::memory_order_release);
             adio->sourceVolume.store(sourceLevelState.sourceVolume, std::memory_order_release);

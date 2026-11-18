@@ -3,8 +3,6 @@
 #include <obs-frontend-api.h>
 #include <obs-module.h>
 
-#include "../../ObsMonitoringCompat.h"
-
 namespace atk::deviceIo2ObsControl
 {
 namespace
@@ -206,10 +204,8 @@ bool readSourceLevelState(obs_source_t* source, SourceLevelState& state)
     if (source == nullptr)
         return false;
 
-    bool obsMuted = obs_source_muted(source);
-
     state.sourceVolume = obs_source_get_volume(source);
-    state.sourceMuted = obsMuted || obsSourceIsMonitorOnly(source);
+    state.sourceMuted = obs_source_muted(source);
     return true;
 }
 

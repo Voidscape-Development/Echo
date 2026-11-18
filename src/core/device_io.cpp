@@ -4,8 +4,6 @@
 #include <obs-module.h>
 #include <juce_dsp/juce_dsp.h>
 
-#include "core/ObsMonitoringCompat.h"
-
 #define FILTER_NAME "Echo Device IO"
 #define FILTER_ID "echo_device_io"
 
@@ -459,8 +457,7 @@ static void tick(void* data, float seconds)
 
         if (adio->followSourceVolume.load(std::memory_order_acquire) && parent)
         {
-            bool obsMuted = obs_source_muted(parent);
-            bool effectiveMuted = obsMuted || obsSourceIsMonitorOnly(parent);
+            bool effectiveMuted = obs_source_muted(parent);
 
             auto fader = obs_source_get_volume(parent);
             if (effectiveMuted)

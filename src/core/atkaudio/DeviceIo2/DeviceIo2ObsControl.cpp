@@ -1,5 +1,7 @@
 #include "DeviceIo2ObsControl.h"
 
+#include "../../ObsMonitoringCompat.h"
+
 #include <obs-frontend-api.h>
 #include <obs-module.h>
 
@@ -205,10 +207,9 @@ bool readSourceLevelState(obs_source_t* source, SourceLevelState& state)
         return false;
 
     bool obsMuted = obs_source_muted(source);
-    int monitoringType = (int)obs_source_get_monitoring_type(source);
 
     state.sourceVolume = obs_source_get_volume(source);
-    state.sourceMuted = obsMuted || (monitoringType == OBS_MONITORING_TYPE_MONITOR_ONLY);
+    state.sourceMuted = obsMuted || obsSourceIsMonitorOnly(source);
     return true;
 }
 

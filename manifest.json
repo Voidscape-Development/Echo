@@ -1,0 +1,18 @@
+{
+    "display_name": "Echo",
+    "id": "c6e761a5-b2a1-4ac7-9eba-6af9b06e075e",
+    "version": "0.1.0",
+    "authors": [
+        "Voidscape Development"
+    ],
+    "name": "echo",
+    "description": "Audio device input/output filters for OBS Studio.",
+    "long_description": "Audio device input/output filters for OBS Studio — send audio from OBS straight out to hardware, and bring hardware audio back into OBS, without a virtual cable or a second application in the path.",
+    "urls": {
+        "repository": "https://github.com/Voidscape-Development/Echo",
+        "website": "https://github.com/Voidscape-Development/Echo",
+        "support": "https://github.com/Voidscape-Development/Echo/issues"
+    },
+    "has_banner": false,
+    "has_icon": false
+}

@@ -1,9 +1,10 @@
-#include "core/ObsMonitoringCompat.h"
 #include "core/atkaudio/DeviceIo/DeviceIo.h"
 #include <atomic>
 #include <obs-frontend-api.h>
 #include <obs-module.h>
 #include <juce_dsp/juce_dsp.h>
+
+#include "core/ObsMonitoringCompat.h"
 
 #define FILTER_NAME "Echo Device IO"
 #define FILTER_ID "echo_device_io"

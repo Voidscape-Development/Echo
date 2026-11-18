@@ -1,5 +1,7 @@
 #pragma once
 
+// Include after <obs-module.h> and any JUCE headers: <obs.h> pulls in libobs's SIMD shim,
+// which clashes with compiler intrinsics headers included after it on Linux.
 #include <obs.h>
 
 // Whether a source is set to "monitor only", i.e. audible on the monitoring device but

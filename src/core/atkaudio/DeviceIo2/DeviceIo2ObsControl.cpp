@@ -1,9 +1,9 @@
 #include "DeviceIo2ObsControl.h"
 
-#include "../../ObsMonitoringCompat.h"
-
 #include <obs-frontend-api.h>
 #include <obs-module.h>
+
+#include "../../ObsMonitoringCompat.h"
 
 namespace atk::deviceIo2ObsControl
 {

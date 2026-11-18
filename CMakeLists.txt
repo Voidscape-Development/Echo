@@ -12,6 +12,8 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type" FORCE)
 endif()
 
+option(ENABLE_BUILD_LEGACY "Enable legacy build" OFF)
+
 include(compilerconfig)
 include(defaults)
 include(helpers)

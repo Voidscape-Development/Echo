@@ -54,7 +54,7 @@ ASIO is a trademark and software of Steinberg Media Technologies GmbH.
 
 ## Installation
 
-Requires **OBS Studio 31.1.1 or newer**. The plugin refuses to load on older versions.
+Requires **OBS Studio 33.0.0 or newer**. The plugin refuses to load on older versions.
 
 Download the installer or portable archive for your platform from the
 [releases page](https://github.com/voidscape-development/echo/releases). For portable

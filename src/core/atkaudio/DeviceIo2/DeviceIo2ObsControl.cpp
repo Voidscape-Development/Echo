@@ -204,11 +204,8 @@ bool readSourceLevelState(obs_source_t* source, SourceLevelState& state)
     if (source == nullptr)
         return false;
 
-    bool obsMuted = obs_source_muted(source);
-    int monitoringType = (int)obs_source_get_monitoring_type(source);
-
     state.sourceVolume = obs_source_get_volume(source);
-    state.sourceMuted = obsMuted || (monitoringType == OBS_MONITORING_TYPE_MONITOR_ONLY);
+    state.sourceMuted = obs_source_muted(source);
     return true;
 }
 
